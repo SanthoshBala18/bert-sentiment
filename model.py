@@ -36,9 +36,8 @@ class SentimentBERT:
 
     def evaluate(self, dataloader):
         y_pred = self._predict_tags_batched(dataloader)
-        y_true = np.append(np.zeros(12500), np.ones(12500))
 
-        return classification_report(y_true, y_pred)
+        return y_pred
 
     def _predict_tags_batched(self, dataloader):
         preds = []

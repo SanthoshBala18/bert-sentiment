@@ -1,6 +1,6 @@
 import os
 import argparse
-
+import pandas as pd
 from torch.utils.data import RandomSampler
 from transformers import BertConfig, BertForSequenceClassification, BertTokenizer
 
@@ -15,9 +15,9 @@ parser.add_argument('--train', action="store_true", help="Train new weights")
 parser.add_argument('--evaluate', action="store_true", help="Evaluate existing weights")
 parser.add_argument('--predict', default="", type=str, help="Predict sentiment on a given sentence")
 parser.add_argument('--path', default='weights/', type=str, help="Weights path")
-parser.add_argument('--train-file', default='data/imdb_train.txt',
+parser.add_argument('--train-file', default='bert-sentiment/input/review.csv',
                     type=str, help="IMDB train file. One sentence per line.")
-parser.add_argument('--test-file', default='data/imdb_test.txt',
+parser.add_argument('--test-file', default='bert-sentiment/input/only_review.csv',
                     type=str, help="IMDB train file. One sentence per line.")
 args = parser.parse_args()
 
@@ -41,9 +41,12 @@ def evaluate(test_file, model_dir="weights/"):
     predictor.load(model_dir=model_dir)
 
     dt = SentimentDataset(predictor.tokenizer)
-    dataloader = dt.prepare_dataloader(test_file)
-    score = predictor.evaluate(dataloader)
-    print(score)
+    dataloader = dt.prepare_test_dataloader(test_file)
+    y_preds = predictor.evaluate(dataloader)
+
+    data = pd.read_csv(test_file)
+    data['user_suggestion'] = y_preds
+    data.to_csv("output.csv", index=False)
 
 
 def predict(text, model_dir="weights/"):

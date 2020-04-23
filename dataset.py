@@ -1,6 +1,7 @@
 import re
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
@@ -31,7 +32,9 @@ class SentimentDataset:
         return bert_sent
 
     def convert_data_to_embeddings(self, sentences_with_labels):
-        for sentence, label in sentences_with_labels:
+        for i in range(len(sentences_with_labels)):
+            sentence = sentences_with_labels.iloc[i,0]
+            label = sentences_with_labels.iloc[i,1]
             bert_sent = self.convert_to_embedding(sentence)
             yield torch.tensor(bert_sent), torch.tensor(label, dtype=torch.int64)
 
@@ -52,8 +55,8 @@ class SentimentDataset:
 
         return data
 
-    def prepare_dataloader_from_examples(self, examples, sampler=None):
-        dataset = list(self.convert_data_to_embeddings(examples))
+    def prepare_dataloader_from_examples(self, data, sampler=None):
+        dataset = list(self.convert_data_to_embeddings(data))
 
         sampler_func = sampler(dataset) if sampler is not None else None
         dataloader = DataLoader(dataset, sampler=sampler_func, batch_size=BATCH_SIZE)
@@ -61,8 +64,14 @@ class SentimentDataset:
         return dataloader
 
     def prepare_dataloader(self, filename, sampler=None):
-        data = self._read_imdb_data(filename)
-        y = np.append(np.zeros(12500), np.ones(12500))
-        sentences_with_labels = zip(data, y.tolist())
+        data = pd.read_csv(filename)
 
-        return self.prepare_dataloader_from_examples(sentences_with_labels, sampler=sampler)
+        return self.prepare_dataloader_from_examples(data, sampler=sampler)
+
+    def prepare_test_dataloader(self, filename):
+        data = pd.read_csv(filename)
+        data['sentiment'] = [0]*len(data)
+
+        return self.prepare_dataloader_from_examples(data, sampler=sampler)
+
+
